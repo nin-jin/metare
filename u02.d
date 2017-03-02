@@ -4,15 +4,15 @@ import std.stdio;
 
 void main(string[] arg)
 {
-	//static const string RE="ABC";
-	static const string RE="A*";
+	static const string RE="A*B";
 	alias re1=compile_char!RE;
-	//alias re2=compile_char!(RE[re1.skip..$]);
-	//alias re=join!(re1,re2);
-	alias re=compile_quant!(re1, RE[re1.skip..$]);
+	alias re2=compile_quant!(re1, RE[re1.skip..$]);
+	alias re3=compile_char!(RE[re2.skip..$]);
+	//alias re4=join!(re2, re3);
+	alias re4=join!(re2, compile_char!(RE[re2.skip..$]));
 	
 	foreach(s; arg[1..$])
-		writeln(s,": ", re.match(s));
+		writeln(s,": ", re4.match(s));
 }
 
 
@@ -20,7 +20,9 @@ void main(string[] arg)
 template Compile(string re)
 {
 	auto Compile(string s) {
-		return join(compile_char!re, Compile!(re[]));
+		//return join(compile_char!re, Compile!(re[]));
+		alias re0=compile_char!re;
+		alias re1=compile_quant!(re0, re[re0.skip..$]);
 	}
 }
 
@@ -49,6 +51,7 @@ struct Match
 
 template compile_char(string re)
 {
+//pragma(msg, "compile char: "~re);
 	static const size_t skip=1;
 	alias match=test_char!re;
 }
@@ -56,6 +59,7 @@ template compile_char(string re)
 
 template compile_quant(alias term, string re)
 {
+//pragma(msg, "compile quant: "~re);
 	static if(re.length) {
 		static if(re[0] == '*') {
 			static const size_t skip=term.skip+1;
@@ -79,14 +83,7 @@ template compile_quant(alias term, string re)
 template join(alias re1, alias re2)
 {
 	static size_t skip=re1.skip+re2.skip;
-	Match join(string s) {
-		auto m1=re1.match(s);
-		if(m1) {
-			auto m2=re2.match(s[m1.length..$]);
-			return Match(m1 && m2, m1.length+m2.length);
-		}
-		return Match(0, 0);
-	}
+	alias match=test_join!(re1,re2);
 }
 
 
@@ -100,6 +97,18 @@ Match test_char(string re)(string s)
 			return Match(1,1);
 	}
 	return Match(0,0);
+}
+
+
+Match test_join(alias re1, alias re2)(string s) {
+	auto m1=re1.match(s);
+//writeln("re1: ", m1, " : ", s);
+	if(m1) {
+		auto m2=re2.match(s[m1.length..$]);
+//writeln("re2: ", m2, " : ", s[m1.length..$]);
+		return Match(m1 && m2, m1.length+m2.length);
+	}
+	return m1;
 }
 
 
