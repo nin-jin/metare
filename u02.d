@@ -31,11 +31,9 @@ template compile(string re)
 		} else {
 			alias atom=compile_char!re;
 		}
-//pragma(msg, "  consumed "~to!string(atom.skip));
 
 
 		alias re1=compile_quant!(atom, re[atom.skip..$]);
-//pragma(msg, "  next "~re[re1.skip..$]);
 		alias re2=join!(re1, compile!(re[re1.skip..$]));
 
 		static const size_t skip=re2.skip;
@@ -49,18 +47,18 @@ template compile(string re)
 
 
 // not used
-template recurse(alias term, string re)
-{
-	static if(re.length) {
-		alias re0=compile!re;
-		alias re1=join!(term, re0);
-		static const size_t skip=re1.skip;
-		alias match=re1.match;
-	} else {
-		static const size_t skip=0;
-		alias match=test_empty!(re);
-	}
-}
+//template recurse(alias term, string re)
+//{
+//	static if(re.length) {
+//		alias re0=compile!re;
+//		alias re1=join!(term, re0);
+//		static const size_t skip=re1.skip;
+//		alias match=re1.match;
+//	} else {
+//		static const size_t skip=0;
+//		alias match=test_empty!(re);
+//	}
+//}
 
 
 struct Match
@@ -94,8 +92,8 @@ template compile_char(string re)
 template compile_escape(string re)
 {
 //pragma(msg, "compile esc: "~re);
-	static assert(re[0] == '\\', "test_escape(): invalid call");
-	static assert(re.length > 1, "test_escape(): stray backslash");
+	static assert(re[0] == '\\', "escaped: invalid call");
+	static assert(re.length > 1, "escaped: stray backslash");
 	static if(re[1] == 'd') {
 		static const size_t skip=2;
 		alias match=test_digit!(re[1..$]);
