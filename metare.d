@@ -3,9 +3,9 @@ import std.conv;
 import std.string;
 
 
-alias NUM=compile!"\\d+";
-alias INT=compile!"[+-]?{NUM}";
-alias LIST=compile!"{INT}(,{INT})*";
+alias NUM=regex!"\\d+";
+alias INT=regex!"[+-]?{NUM}";
+alias LIST=regex!"{INT}(,{INT})*";
 
 unittest
 {
@@ -22,7 +22,7 @@ unittest
 
 
 
-template compile(string re)
+template regex(string re)
 {
 //pragma(msg, "compiling "~re);
 	static if(re.length) {
@@ -53,7 +53,7 @@ template compile(string re)
 
 		// pase predicate (if any) *+?
 		alias quant=compile_quant!(atom, re[atom.skip..$]);
-		alias result=both_of!(quant, compile!(re[quant.skip..$]));
+		alias result=both_of!(quant, regex!(re[quant.skip..$]));
 
 		static const size_t skip=result.skip;
 		alias match=result.match;
@@ -70,7 +70,7 @@ template compile(string re)
 
 template compile_char(string re)
 {
-//pragma(msg, "compile char: "~re);
+//pragma(msg, "regex char: "~re);
 	static const size_t skip=1;
 	alias match=test_char!re;
 }
@@ -78,7 +78,7 @@ template compile_char(string re)
 
 template compile_escape(string re)
 {
-//pragma(msg, "compile esc: "~re);
+//pragma(msg, "regex esc: "~re);
 	static assert(re[0] == '\\', "escaped: invalid call");
 	static assert(re.length > 1, "escaped: stray backslash");
 	static if(re[1] == 'd') {
@@ -133,7 +133,7 @@ template compile_atom(string re)
 {
 //pragma(msg, "atom: "~re);
 	static const skip=2+extract_until!(re[1..$], ')').length;
-	alias match=compile!(re[1..skip-1]).match;
+	alias match=regex!(re[1..skip-1]).match;
 }
 
 
@@ -173,7 +173,7 @@ template compile_anychar(string re)
 // modify previous (term) regex with one of *+? predicates, or none
 template compile_quant(alias term, string re)
 {
-//pragma(msg, "compile quant: "~re~"  +"~to!string(term.skip));
+//pragma(msg, "regex quant: "~re~"  +"~to!string(term.skip));
 	static if(re.length) {
 		static if(re[0] == '*') {
 			static const size_t skip=term.skip+1;
