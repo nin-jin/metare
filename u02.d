@@ -6,7 +6,8 @@ import std.stdio;
 
 void main(string[] args)
 {
-	static const string RE="A*\\dB+\\sX?\\w\\x5A+\\s*[a-fq]";
+	static const string RE="A*\\dB+\\sX?\\w\\x5A+\\s*[a-fq]+\\s*(\\d,)+.*";
+	//static const string RE="(AB)+";
 	string arg=std.string.join(args[1..$], " ");
 	alias re=compile!RE;
 	
@@ -22,7 +23,11 @@ template compile(string re)
 		static if(re[0] == '\\') {
 			alias atom=compile_escape!re;
 		} else static if(re[0] == '[') {
-			alias atom=compile_class!(re[1..$]);
+			alias atom=compile_class!re;
+		} else static if(re[0] == '(') {
+			alias atom=compile_atom!re;
+		} else static if(re[0] == '.') {
+			alias atom=compile_anychar!re;
 		} else {
 			alias atom=compile_char!re;
 		}
@@ -110,31 +115,57 @@ template compile_escape(string re)
 }
 
 
-XXX: NOT TERMINATED!!!!
+template extract_until(string s, char terminator)
+{
+	static assert(s.length, "missing terminator");
+	static if(s[0] == terminator) {
+		static const length=0;
+	} else {
+		static const length=1+extract_until!(s[1..$], terminator).length;
+	}
+}
+
+
 template compile_class(string re)
 {
-pragma(msg, "character class: "~re);
-	static assert(re.length && re[0] == '[', "invalid class expression");
-	alias term=compile_range!(re);
-	alias recurse=compile_class!(re[term.skip..$]);
-	static const skip=1+term.skip+recurse.skip;
-	alias match=either_of!(term, recurse);
+//pragma(msg, "character class: "~re);
+	static const skip=2+extract_until!(re[1..$], ']').length;
+	alias match=compile_range!(re[1..skip-1]).match;
+}
+
+
+template compile_atom(string re)
+{
+//pragma(msg, "atom: "~re);
+	static const skip=2+extract_until!(re[1..$], ')').length;
+	alias match=compile!(re[1..skip-1]).match;
 }
 
 
 template compile_range(string re)
 {
-	static assert(re.length, re~": character class is not terminated");
-	static if(re.length && re[0] == ']') {
-		static const skip=1;
-		alias match=test_false!("");
+	static if(re.length  == 0) {
+		static const skip=0;
+		alias match=test_false!(0);
 	} else static if(re.length > 2 && re[1] == '-') {
 		static const skip=3;
-		alias match=test_range!(re[0..$],re[2..$]);
+		alias match=either_of!(
+			  test_range!(re[0],re[2])
+			, compile_range!(re[skip..$])
+			).match;
 	} else {
 		static const skip=1;
-		alias match=test_range!(re[0..$],re[0..$]);
+		alias match=either_of!(
+			  test_range!(re[0],re[0])
+			, compile_range!(re[skip..$])
+			).match;
 	}
+}
+
+template compile_anychar(string re)
+{
+	static const skip=1;
+	alias match=test_any!1;
 }
 
 
@@ -179,7 +210,7 @@ template join(alias re1, alias re2)
 
 template either_of(alias re1, alias re2)
 {
-	static const size_t skip=re1.skip+re2.skip;
+	//static const size_t skip=re1.skip+re2.skip;
 	alias match=test_either!(re1,re2);
 }
 
@@ -231,14 +262,11 @@ Match test_word(string re)(string s)
 }
 
 
-Match test_range(string re1, string re2)(string s)
+Match test_range(char left, char right)(string s)
 {
-writeln("test range: [", re1[0],"-", re2[0],"] <=> ", s[0]);
 	if(s.length) {
-		if(s[0] >= re1[0] && s[0] <= re2[0]) {
-writeln("     range matched");
+		if(s[0] >= left && s[0] <= right)
 			return Match(1,1);
-		}
 	}
 	return Match(0,0);
 }
@@ -250,14 +278,19 @@ Match test_empty(string re)(string s)
 	return Match(1,0);
 }
 
-Match test_true(string re)(string s)
+Match test_true(int length)(string s)
 {
-	return Match(1,0);
+	return Match(1,length);
 }
 
-Match test_false(string re)(string s)
+Match test_any(int length)(string s)
 {
-	return Match(0,0);
+	return (s.length >= length)? Match(1,length) : Match(0, s.length);
+}
+
+Match test_false(int length)(string s)
+{
+	return Match(0,length);
 }
 
 
@@ -272,7 +305,7 @@ Match test_join(alias re1, alias re2)(string s) {
 
 
 Match test_either(alias re1, alias re2)(string s) {
-	auto m1=re1.match(s);
+	auto m1=re1(s);
 	return m1? m1 : re2.match(s);
 }
 
