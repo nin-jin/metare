@@ -17,8 +17,6 @@ unittest
 
 	assert(LIST.match("1,+2,-3,4") == Match(true, "1,+2,-3,4".length));
 
-	alias hex=compile!"\\x5A";
-
 }
 
 
