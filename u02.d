@@ -6,8 +6,8 @@ import std.stdio;
 
 void main(string[] args)
 {
+//CALL u02 AAA3BB YZ abc 1,2,14 ...
 	static const string RE="A*\\dB+\\sX?\\w\\x5A+\\s*[a-fq]+\\s*(\\d,)+.*";
-	//static const string RE="(AB)+";
 	string arg=std.string.join(args[1..$], " ");
 	alias re=compile!RE;
 	
