@@ -1,5 +1,4 @@
 module metare;
-import std.typecons;
 import std.conv;
 import std.string;
 import std.stdio;

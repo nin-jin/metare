@@ -1,14 +1,23 @@
 module metare;
 import std.conv;
 import std.string;
-import std.stdio;
 
+
+alias NUM=compile!"\\d+";
+alias INT=compile!"[+-]?{NUM}";
+alias LIST=compile!"{INT}(,{INT})*";
 
 unittest
 {
-	alias NUMBER=compile!"\\d+";
-	assert(NUMBER.match("1234") == Match(true, 4));
+	assert(NUM.match("1234") == Match(true, "1234".length));
 
+	assert(INT.match("12") == Match(true, "12".length));
+	assert(INT.match("-12") == Match(true, "-12".length));
+	assert(INT.match("+7") == Match(true, "+7".length));
+
+	assert(LIST.match("1,+2,-3,4") == Match(true, "1,+2,-3,4".length));
+
+	alias hex=compile!"\\x5A";
 
 }
 
@@ -22,6 +31,10 @@ template compile(string re)
 		// parse escaped sequences
 		static if(re[0] == '\\') {
 			alias atom=compile_escape!re;
+
+		// parse meta expression
+		} else static if(re[0] == '{') {
+			alias atom=compile_meta!re;
 
 		// parse character class
 		} else static if(re[0] == '[') {
@@ -53,15 +66,6 @@ template compile(string re)
 		alias match=test_empty!(re);
 	}
 }
-
-
-
-
-
-
-
-
-
 
 
 
@@ -108,6 +112,14 @@ template extract_until(string s, char terminator)
 	} else {
 		static const length=1+extract_until!(s[1..$], terminator).length;
 	}
+}
+
+
+template compile_meta(string re)
+{
+//pragma(msg, "meta class: "~re);
+	static const skip=2+extract_until!(re[1..$], '}').length;
+	mixin("alias match="~re[1..skip-1]~".match;");
 }
 
 
@@ -336,7 +348,7 @@ Match zero_or_more(alias term)(string s)
 	auto r=Match(1,0);
 	Match n=term.match(s);
 	while(n) {
-		r._length+=n.length;
+		r.length+=n.length;
 		n=term.match(s[r.length..$]);
 	}
 	return r;
