@@ -52,8 +52,8 @@ template regex(string re)
 		}
 
 		// pase predicate (if any) *+?
-		alias quant=compile_quant!(atom, re[atom.skip..$]);
-		alias result=both_of!(quant, regex!(re[quant.skip..$]));
+		alias pred=compile_pred!(atom, re[atom.skip..$]);
+		alias result=both_of!(pred, regex!(re[pred.skip..$]));
 
 		static const size_t skip=result.skip;
 		alias match=result.match;
@@ -171,9 +171,9 @@ template compile_anychar(string re)
 
 
 // modify previous (term) regex with one of *+? predicates, or none
-template compile_quant(alias term, string re)
+template compile_pred(alias term, string re)
 {
-//pragma(msg, "regex quant: "~re~"  +"~to!string(term.skip));
+//pragma(msg, "regex pred: "~re~"  +"~to!string(term.skip));
 	static if(re.length) {
 		static if(re[0] == '*') {
 			static const size_t skip=term.skip+1;
@@ -352,13 +352,11 @@ Match zero_or_more(alias term)(string s)
 	return r;
 }
 
-// conditionally match the expression, always match but matched length is different
+// conditionally match the expression, always match but matched length may be different
 Match zero_or_one(alias term)(string s)
 {
 	Match r=term.match(s);
-	if(r) return r;
-
-	return Match(1,0);
+	return r? r : Match(1,0);
 }
 
 // match at least one repetition of the expression
